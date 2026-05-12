@@ -39,10 +39,17 @@ app.get('/api/ecommerce/products', (req, res) => {
 
 // Agent buys a product
 app.post('/api/ecommerce/buy', (req, res) => {
-    const { product_id, quantity, buyer_agent_id } = req.body;
+    const { product_id, quantity, buyer_agent_id, shipping_address, payment_method, payment_id } = req.body;
     
+    // Strict validation for "real" e-commerce checkout
     if (!product_id || !quantity || !buyer_agent_id) {
         return res.status(400).json({ error: "Missing required fields: product_id, quantity, buyer_agent_id" });
+    }
+    if (!shipping_address) {
+        return res.status(400).json({ error: "Checkout failed: Missing shipping_address." });
+    }
+    if (!payment_method || !payment_id) {
+        return res.status(400).json({ error: "Checkout failed: Missing payment details (payment_method, payment_id)." });
     }
 
     const db = getDB();
@@ -55,10 +62,12 @@ app.post('/api/ecommerce/buy', (req, res) => {
     product.stock -= quantity;
     const order = {
         order_id: genId('ord'),
-        buyer: buyer_agent_id,
+        buyer_agent: buyer_agent_id,
         product: product.name,
         quantity: quantity,
         total_cost: product.price * quantity,
+        shipping_to: shipping_address,
+        payment_status: `Paid via ${payment_method} (${payment_id})`,
         timestamp: new Date().toISOString()
     };
     
@@ -66,7 +75,7 @@ app.post('/api/ecommerce/buy', (req, res) => {
     saveDB(db);
 
     res.status(201).json({
-        message: "Purchase successful!",
+        message: "Payment verified and purchase successful!",
         receipt: order
     });
 });
@@ -117,8 +126,7 @@ app.post('/api/booking/book', (req, res) => {
 });
 
 // Start Server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.lang="javascript"
     console.log(`🤖 Agent World running on http://localhost:${PORT}`);
 });

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal AI Agent</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #f3f4f6; }
+        .chat-container {
+            max-width: 800px; margin: 40px auto;
+            background: #fff; border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; height: 80vh;
+            border: 1px solid #e5e7eb; overflow: hidden;
+        }
+        .chat-header {
+            padding: 20px; border-bottom: 1px solid #e5e7eb;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
+        }
+        .chat-messages {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+        }
+        .msg { max-width: 80%; padding: 16px; border-radius: 12px; line-height: 1.5; }
+        .msg-human { background: #f3f4f6; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .msg-agent { background: #e0e7ff; color: #3730a3; align-self: flex-start; border-bottom-left-radius: 4px; }
+        
+        .chat-input {
+            padding: 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px;
+        }
+        .chat-input input {
+            flex: 1; padding: 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;
+            outline: none;
+        }
+        .chat-input input:focus { border-color: #3b82f6; }
+        .chat-input button {
+            background: #3b82f6; color: white; border: none; padding: 0 24px;
+            border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .chat-input button:hover { background: #2563eb; }
+
+        /* Rich UI Cards inside Chat */
+        .product-grid {
+            display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap;
+        }
+        .product-card {
+            background: white; border: 1px solid #c7d2fe; border-radius: 8px; overflow: hidden;
+            width: 200px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+        }
+        .product-card img { width: 100%; height: 140px; object-fit: cover; }
+        .product-info { padding: 12px; flex: 1; display: flex; flex-direction: column; }
+        .product-title { font-weight: 600; font-size: 0.95rem; margin: 0 0 4px 0; color: #111827; }
+        .product-price { color: #059669; font-weight: 600; font-family: monospace; font-size: 1.1rem; }
+        .product-rating { color: #d97706; font-size: 0.85rem; margin-bottom: 8px; }
+        .buy-btn {
+            background: #111827; color: white; padding: 8px; border: none; border-radius: 6px;
+            width: 100%; margin-top: auto; cursor: pointer; font-weight: 500; font-size: 0.85rem;
+        }
+        .buy-btn:hover { background: #374151; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="avatar">AI</div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.2rem;">Your Personal Assistant</h2>
+                <p style="margin: 0; font-size: 0.85rem; color: #6b7280;">Connected to Agent Web</p>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chat">
+            <div class="msg msg-agent">
+                Hello! I am your personal AI Agent. I can browse the Agent Web and complete tasks for you.<br><br>
+                Try asking me: <strong>"Show me some laptops"</strong> or <strong>"I want to buy a chair"</strong>.
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Ask your agent to buy something..." onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Mock User Profile (Stored safely in the human's device, given to Agent when purchasing)
+        const USER_PROFILE = {
+            buyer_agent_id: "human_ui_agent_99",
+            shipping_address: "123 Silicon Valley, CA",
+            payment_method: "Credit Card",
+            payment_id: "XXXX-XXXX-XXXX-4242"
+        };
+
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('userInput');
+
+        function appendHumanMsg(text) {
+            chat.innerHTML += `<div class="msg msg-human">${text}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function appendAgentMsg(text) {
+            chat.innerHTML += `<div class="msg msg-agent">${text}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const query = input.value.trim();
+            if (!query) return;
+            
+            appendHumanMsg(query);
+            input.value = '';
+            
+            appendAgentMsg(`<em>Searching the AgentMart database for "${query}"...</em>`);
+
+            try {
+                // Agent autonomously searches the API
+                const res = await fetch('http://localhost:3001/api/ecommerce/products');
+                const data = await res.json();
+                
+                // Agent filters based on human request
+                const matches = data.products.filter(p => 
+                    p.name.toLowerCase().includes(query.toLowerCase()) || 
+                    p.category.toLowerCase().includes(query.toLowerCase())
+                );
+
+                if (matches.length === 0) {
+                    appendAgentMsg(`I couldn't find anything matching "${query}". Available categories are: electronics, furniture, appliances.`);
+                    return;
+                }
+
+                // Agent returns Rich UI Cards instead of blindly buying
+                let html = `I found ${matches.length} option(s) for you on AgentMart:<br><div class="product-grid">`;
+                
+                matches.forEach(p => {
+                    html += `
+                        <div class="product-card">
+                            <img src="${p.image_url}" alt="${p.name}">
+                            <div class="product-info">
+                                <h3 class="product-title">${p.name}</h3>
+                                <div class="product-rating">★ ${p.rating}/5.0</div>
+                                <div class="product-price">$${p.price}</div>
+                                <button class="buy-btn" onclick="executePurchase('${p.id}', '${p.name}')">Approve Purchase</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                appendAgentMsg(html);
+
+            } catch (e) {
+                appendAgentMsg(`Error connecting to Agent Web: ${e.message}`);
+            }
+        }
+
+        async function executePurchase(productId, productName) {
+            appendAgentMsg(`<em>You approved the purchase of ${productName}. Executing transaction with your saved payment details...</em>`);
+            
+            try {
+                const payload = {
+                    product_id: productId,
+                    quantity: 1,
+                    ...USER_PROFILE
+                };
+
+                const res = await fetch('http://localhost:3001/api/ecommerce/buy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    appendAgentMsg(`✅ <strong>Success!</strong> ${data.message}<br>Order ID: <code>${data.receipt.order_id}</code><br>It will be shipped to: ${data.receipt.shipping_to}`);
+                } else {
+                    appendAgentMsg(`❌ <strong>Failed:</strong> ${data.error}`);
+                }
+            } catch (e) {
+                appendAgentMsg(`❌ <strong>System Error:</strong> ${e.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
