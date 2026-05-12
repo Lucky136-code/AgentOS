@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -24,17 +25,90 @@ function saveDB(data) {
 const genId = (prefix) => `${prefix}_${Math.random().toString(36).substr(2, 9)}`;
 
 // ==========================================
+// 🧠 AGENT BRAIN (LLM PROXY)
+// ==========================================
+
+app.post('/api/chat/analyze', async (req, res) => {
+    const { messages } = req.body;
+    const apiKey = process.env.GROQ_API_KEY;
+
+    if (!apiKey || apiKey === 'your_key_goes_here') {
+        return res.status(500).json({ error: "Server missing GROQ_API_KEY in .env file" });
+    }
+
+    const systemPrompt = `You are the brain of an Agent OS.
+Categorize the user's query into one of three domains:
+1. 'ecommerce': The user wants to buy a product, shop, or see what items are available.
+2. 'travel': The user wants to book a flight or travel.
+3. 'general': The user is saying hi, or asking an unrelated conversational question.
+
+Extract the core keywords (nouns/search terms) as an array. (e.g. "buy a book" -> ["book"]). If they ask "what is available", leave keywords empty.
+Extract maxPrice if mentioned (as a number).
+Provide a conversational 'reply' confirming what you understood.
+Output ONLY valid JSON in this exact format: 
+{ "domain": "ecommerce"|"travel"|"general", "keywords": ["kw1"], "maxPrice": 100, "reply": "I can help you buy that." }`;
+
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    ...messages
+                ],
+                response_format: { type: "json_object" }
+            })
+        });
+
+        if (!response.ok) {
+            const errorDetails = await response.json();
+            throw new Error(`Groq Error: ${errorDetails.error?.message || "Unknown error"}`);
+        }
+        
+        const data = await response.json();
+        res.json(JSON.parse(data.choices[0].message.content));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
 // 🛒 AGENT E-COMMERCE SITE
 // ==========================================
 
-// Agent browses the store
-app.get('/api/ecommerce/products', (req, res) => {
-    const db = getDB();
-    res.json({
-        store_name: "AgentMart",
-        message: "Welcome to AgentMart. Use these product IDs to place an order.",
-        products: db.ecommerce.products
-    });
+// Agent browses the store (Live API Connection)
+app.get('/api/ecommerce/products', async (req, res) => {
+    const q = req.query.q || '';
+    try {
+        // 1. Backend connects to external public internet API
+        const response = await fetch(`https://dummyjson.com/products/search?q=${q}&limit=5`);
+        const data = await response.json();
+        
+        // 2. Translate external API data into the Agent OS standard format
+        const mappedProducts = data.products.map(p => ({
+            id: `prod_${p.id}`,
+            name: p.title,
+            price: p.price,
+            stock: p.stock,
+            category: p.category,
+            rating: p.rating,
+            image_url: p.thumbnail,
+            description: p.description
+        }));
+
+        res.json({
+            store_name: "AgentMart (Powered by DummyJSON)",
+            message: "Live products fetched from the open internet.",
+            products: mappedProducts
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch from external API." });
+    }
 });
 
 // Agent buys a product
@@ -53,19 +127,21 @@ app.post('/api/ecommerce/buy', (req, res) => {
     }
 
     const db = getDB();
-    const product = db.ecommerce.products.find(p => p.id === product_id);
-
-    if (!product) return res.status(404).json({ error: "Product not found" });
-    if (product.stock < quantity) return res.status(400).json({ error: `Not enough stock. Only ${product.stock} left.` });
+    
+    // In a real app, we would verify the price against the external API here.
+    // For this demo, we bypass local DB lookup since the products come from the internet.
+    const mockExternalProduct = {
+        name: "Item " + product_id,
+        price: 99.99, // Mocking price since we bypassed local DB
+        stock: 10
+    };
 
     // Process order
-    product.stock -= quantity;
     const order = {
         order_id: genId('ord'),
         buyer_agent: buyer_agent_id,
-        product: product.name,
+        product: product_id, // Saving ID instead of name to adapt to external API
         quantity: quantity,
-        total_cost: product.price * quantity,
         shipping_to: shipping_address,
         payment_status: `Paid via ${payment_method} (${payment_id})`,
         timestamp: new Date().toISOString()

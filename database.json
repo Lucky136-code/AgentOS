@@ -1,31 +1,31 @@
 {
   "ecommerce": {
     "products": [
-      { 
-        "id": "prod_001", 
-        "name": "Quantum Laptop Pro", 
-        "price": 1299.99, 
-        "stock": 44, 
+      {
+        "id": "prod_001",
+        "name": "Quantum Laptop Pro",
+        "price": 1299.99,
+        "stock": 39,
         "category": "electronics",
         "rating": 4.8,
         "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80",
         "description": "Ultra-thin, high-performance laptop powered by the latest quantum processor. 32GB RAM, 1TB SSD."
       },
-      { 
-        "id": "prod_002", 
-        "name": "Ergonomic Neural Chair", 
-        "price": 499.00, 
-        "stock": 11, 
+      {
+        "id": "prod_002",
+        "name": "Ergonomic Neural Chair",
+        "price": 499,
+        "stock": 10,
         "category": "furniture",
         "rating": 4.5,
         "image_url": "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=800&q=80",
         "description": "Premium office chair designed to support spine health and increase focus during long coding sessions."
       },
-      { 
-        "id": "prod_003", 
-        "name": "Coffee Maker 3000", 
-        "price": 89.99, 
-        "stock": 150, 
+      {
+        "id": "prod_003",
+        "name": "Coffee Maker 3000",
+        "price": 89.99,
+        "stock": 150,
         "category": "appliances",
         "rating": 4.2,
         "image_url": "https://images.unsplash.com/photo-1517083626781-fbccb19cd1d3?w=800&q=80",
@@ -56,6 +56,63 @@
         "quantity": 1,
         "total_cost": 499,
         "timestamp": "2026-05-12T21:24:28.056Z"
+      },
+      {
+        "order_id": "ord_wb834orgj",
+        "buyer": "human_ui_agent_99",
+        "product": "Quantum Laptop Pro",
+        "quantity": 1,
+        "total_cost": 1299.99,
+        "timestamp": "2026-05-12T21:31:33.529Z"
+      },
+      {
+        "order_id": "ord_l9h7p4z5u",
+        "buyer": "human_ui_agent_99",
+        "product": "Quantum Laptop Pro",
+        "quantity": 1,
+        "total_cost": 1299.99,
+        "timestamp": "2026-05-12T21:33:06.902Z"
+      },
+      {
+        "order_id": "ord_72yrxwa3h",
+        "buyer": "human_ui_agent_99",
+        "product": "Quantum Laptop Pro",
+        "quantity": 1,
+        "total_cost": 1299.99,
+        "timestamp": "2026-05-12T21:33:16.831Z"
+      },
+      {
+        "order_id": "ord_iekh4jwqt",
+        "buyer": "human_ui_agent_99",
+        "product": "Quantum Laptop Pro",
+        "quantity": 1,
+        "total_cost": 1299.99,
+        "timestamp": "2026-05-12T21:36:36.045Z"
+      },
+      {
+        "order_id": "ord_cal0bg8ws",
+        "buyer": "human_ui_agent_99",
+        "product": "Quantum Laptop Pro",
+        "quantity": 1,
+        "total_cost": 1299.99,
+        "timestamp": "2026-05-12T21:40:44.043Z"
+      },
+      {
+        "order_id": "ord_6impyp0or",
+        "buyer": "human_ui_agent_99",
+        "product": "Ergonomic Neural Chair",
+        "quantity": 1,
+        "total_cost": 499,
+        "timestamp": "2026-05-12T21:41:36.701Z"
+      },
+      {
+        "order_id": "ord_a6obnz0ry",
+        "buyer_agent": "human_ui_agent_99",
+        "product": "prod_2",
+        "quantity": 1,
+        "shipping_to": "11",
+        "payment_status": "Paid via 111 (1111)",
+        "timestamp": "2026-05-12T22:25:02.726Z"
       }
     ]
   },
@@ -67,7 +124,7 @@
         "departure": "JFK",
         "arrival": "LHR",
         "price": 450,
-        "seats_available": 12,
+        "seats_available": 11,
         "time": "2026-06-01T14:00:00Z"
       },
       {
@@ -80,6 +137,14 @@
         "time": "2026-06-02T09:30:00Z"
       }
     ],
-    "bookings": []
+    "bookings": [
+      {
+        "booking_ref": "bkg_65p04e606",
+        "agent": "human_ui_agent_99",
+        "passenger": "Human Passenger",
+        "flight_details": "JFK to LHR on AeroAI",
+        "timestamp": "2026-05-12T21:57:26.559Z"
+      }
+    ]
   }
 }

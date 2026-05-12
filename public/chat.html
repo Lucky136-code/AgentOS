@@ -62,6 +62,15 @@
             width: 100%; margin-top: auto; cursor: pointer; font-weight: 500; font-size: 0.85rem;
         }
         .buy-btn:hover { background: #374151; }
+
+        /* Flight UI Cards */
+        .flight-card {
+            background: white; border: 1px solid #c7d2fe; border-radius: 8px; overflow: hidden;
+            width: 240px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 16px; display: flex; flex-direction: column;
+        }
+        .flight-airline { font-weight: 600; font-size: 1rem; color: #111827; display: flex; justify-content: space-between; }
+        .flight-route { font-size: 1.2rem; font-weight: bold; margin: 12px 0; color: #3b82f6; text-align: center; background: #f3f4f6; padding: 8px; border-radius: 6px; }
+        .flight-time { font-size: 0.85rem; color: #6b7280; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -91,6 +100,7 @@
         <div style="background:#fff; padding:30px; border-radius:12px; width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
             <h3 style="margin-top:0;">Profile Setup</h3>
             <p style="font-size:0.9rem; color:#6b7280; margin-bottom:20px;">I need to know where to ship your items and how to pay for them.</p>
+            <input type="text" id="setupName" placeholder="Your Full Name" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
             <input type="text" id="setupAddress" placeholder="Shipping Address" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
             <input type="text" id="setupPaymentMethod" placeholder="Payment Method (e.g. UPI)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
             <input type="text" id="setupPaymentId" placeholder="Payment ID (e.g. upi@id)" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
@@ -106,16 +116,18 @@
         }
 
         function saveProfile() {
+            const name = document.getElementById('setupName').value.trim();
             const addr = document.getElementById('setupAddress').value.trim();
             const method = document.getElementById('setupPaymentMethod').value.trim();
             const pid = document.getElementById('setupPaymentId').value.trim();
             
-            if(!addr || !method || !pid) {
+            if(!name || !addr || !method || !pid) {
                 alert("Please fill out all fields.");
                 return;
             }
 
             USER_PROFILE = {
+                name: name,
                 buyer_agent_id: "human_ui_agent_99",
                 shipping_address: addr,
                 payment_method: method,
@@ -140,54 +152,76 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
-        // --- Simulate an LLM parsing Natural Language ---
-        function analyzeIntent(query) {
-            const lowerQuery = query.toLowerCase();
-            let intent = { keywords: [], maxPrice: Infinity, minRating: 0 };
-            
-            // 1. Extract Price Constraints (e.g. "under 500", "< 1000")
-            const priceMatch = lowerQuery.match(/(?:under|below|<|max|cheaper than)\s*\$?(\d+)/);
-            if (priceMatch) intent.maxPrice = parseInt(priceMatch[1]);
-            
-            // 2. Extract Quality Constraints
-            if (lowerQuery.includes("best") || lowerQuery.includes("top rated") || lowerQuery.includes("good")) {
-                intent.minRating = 4.5;
-            }
+        // --- THE ULTIMATE SOLUTION: FAST LLM PROXY WITH MEMORY ---
+        let chatHistory = [];
 
-            // 3. Extract core keywords by removing stop words
-            const stopWords = ["show", "me", "some", "a", "an", "the", "i", "want", "to", "buy", "find", "looking", "for", "with", "price", "under", "below", "dollars", "bucks", "$"];
-            const words = lowerQuery.replace(/[^\w\s]/gi, '').split(' ');
+        async function analyzeIntent() {
+            appendAgentMsg("<em>🤔 Thinking...</em>"); 
+
+            const res = await fetch("http://localhost:3001/api/chat/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: chatHistory })
+            });
+
+            if (!res.ok) {
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || "Failed to contact proxy.");
+                } else {
+                    throw new Error("Backend server not responding correctly. Did you restart the Node server?");
+                }
+            }
             
-            intent.keywords = words.filter(w => !stopWords.includes(w) && isNaN(w) && w.length > 2);
-            return intent;
+            return await res.json();
         }
 
         async function sendMessage() {
-            const query = input.value.trim();
+            let query = input.value.trim();
             if (!query) return;
             
             appendHumanMsg(query);
             input.value = '';
-            
-            // 1. "LLM" processes the text
-            const intent = analyzeIntent(query);
-            appendAgentMsg(`<em>I understand you are looking for: <strong>${intent.keywords.join(', ')}</strong> ` + 
-                           (intent.maxPrice !== Infinity ? `under $${intent.maxPrice}` : "") + `</em>`);
+
+            // 1. Add user's message to the memory log
+            chatHistory.push({ role: "user", content: query });
 
             try {
-                // 2. Agent fetches from the API
-                const res = await fetch('http://localhost:3001/api/ecommerce/products');
+                // Let the real LLM parse the full conversation context
+                const intent = await analyzeIntent();
+                
+                // Remove the "Thinking..." message
+                chat.removeChild(chat.lastChild);
+                
+                // 2. Add LLM's conversational reply to memory log
+                chatHistory.push({ role: "assistant", content: intent.reply });
+
+                // Print the LLM's conversational reply
+                appendAgentMsg(`<strong>Agent:</strong> ${intent.reply}`);
+
+                // Execute the correct API workflow based on the LLM's classification
+                if (intent.domain === "ecommerce") {
+                    await handleEcommerceSearch(intent);
+                } else if (intent.domain === "travel") {
+                    await handleTravelSearch(intent);
+                }
+            } catch (e) {
+                chat.removeChild(chat.lastChild); // Remove "Thinking..."
+                appendAgentMsg(`❌ <strong>LLM Error:</strong> ${e.message} Make sure your Groq key is valid and you have internet access.`);
+            }
+        }
+
+        async function handleEcommerceSearch(intent) {
+            try {
+                const q = intent.keywords.length > 0 ? intent.keywords[0] : '';
+                const res = await fetch(`http://localhost:3001/api/ecommerce/products?q=${q}`);
                 const data = await res.json();
                 
-                // 3. Agent applies logic to the data based on intent
-                const matches = data.products.filter(p => {
-                    // Check price
+                let matches = data.products.filter(p => {
                     if (p.price > intent.maxPrice) return false;
-                    // Check rating
                     if (p.rating < intent.minRating) return false;
-                    // Check keywords
-                    if (intent.keywords.length === 0) return true; // Show all if no specific keyword
-                    
+                    if (intent.keywords.length === 0) return true; 
                     return intent.keywords.some(kw => 
                         p.name.toLowerCase().includes(kw) || 
                         p.category.toLowerCase().includes(kw) ||
@@ -195,14 +229,16 @@
                     );
                 });
 
-                if (matches.length === 0) {
-                    appendAgentMsg(`I couldn't find any items matching your exact criteria. Try adjusting the price or keywords!`);
-                    return;
+                // FALLBACK: If search failed or user asked "what is available", show trending items
+                if (matches.length === 0 || q === 'things' || q === 'everything') {
+                    appendAgentMsg(`I couldn't find exactly what you asked for. Here are some top items currently available in the store:`);
+                    // Fetch default items without a query
+                    const fallbackRes = await fetch(`http://localhost:3001/api/ecommerce/products`);
+                    const fallbackData = await fallbackRes.json();
+                    matches = fallbackData.products;
                 }
 
-                // Agent returns Rich UI Cards
-                let html = `I found ${matches.length} option(s) for you:<br><div class="product-grid">`;
-                
+                let html = `Here are ${matches.length} option(s) for you:<br><div class="product-grid">`;
                 matches.forEach(p => {
                     html += `
                         <div class="product-card">
@@ -211,62 +247,120 @@
                                 <h3 class="product-title">${p.name}</h3>
                                 <div class="product-rating">★ ${p.rating}/5.0</div>
                                 <div class="product-price">$${p.price}</div>
-                                <button class="buy-btn" onclick="executePurchase('${p.id}', '${p.name}', ${p.price})">Approve Purchase</button>
+                                <button class="buy-btn" onclick="requestConfirmation('ecommerce', '${p.id}', '${p.name}', ${p.price})">Approve Purchase</button>
                             </div>
                         </div>
                     `;
                 });
                 html += `</div>`;
                 appendAgentMsg(html);
-
             } catch (e) {
                 appendAgentMsg(`Error connecting to Agent Web: ${e.message}`);
             }
         }
 
-        let pendingPurchase = null;
+        async function handleTravelSearch(intent) {
+            try {
+                const res = await fetch('http://localhost:3001/api/booking/flights');
+                const data = await res.json();
+                
+                const matches = data.flights.filter(f => {
+                    if (f.price > intent.maxPrice) return false;
+                    if (f.seats_available === 0) return false;
+                    if (intent.keywords.length === 0) return true; 
+                    return intent.keywords.some(kw => 
+                        f.departure.toLowerCase().includes(kw) || 
+                        f.arrival.toLowerCase().includes(kw) ||
+                        f.airline.toLowerCase().includes(kw)
+                    );
+                });
 
-        function executePurchase(productId, productName, price) {
-            pendingPurchase = { productId, productName, price };
+                if (matches.length === 0) {
+                    appendAgentMsg(`I couldn't find any available flights matching your criteria on SkyAgent.`);
+                    return;
+                }
+
+                let html = `I found ${matches.length} flight(s) for you:<br><div class="product-grid">`;
+                matches.forEach(f => {
+                    const dateObj = new Date(f.time);
+                    const formattedTime = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    html += `
+                        <div class="flight-card">
+                            <div class="flight-airline"><span>${f.airline}</span> <span style="color:#059669;">$${f.price}</span></div>
+                            <div class="flight-route">${f.departure} ✈️ ${f.arrival}</div>
+                            <div class="flight-time">📅 ${formattedTime}</div>
+                            <div style="font-size: 0.8rem; color: #d97706; margin-bottom: 8px;">${f.seats_available} seats left</div>
+                            <button class="buy-btn" onclick="requestConfirmation('travel', '${f.id}', '${f.departure} to ${f.arrival} on ${f.airline}', ${f.price})">Book Flight</button>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                appendAgentMsg(html);
+            } catch (e) {
+                appendAgentMsg(`Error connecting to SkyAgent API: ${e.message}`);
+            }
+        }
+
+        let pendingAction = null;
+
+        function requestConfirmation(domain, id, title, price) {
+            pendingAction = { domain, id, title, price };
             
-            // Generate a confirmation dialog in the chat
+            const actionText = domain === 'ecommerce' ? 'buy' : 'book';
+            
             let html = `
                 <div style="background: #fff; border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin-top: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <h4 style="margin: 0 0 8px 0; color: #111827;">Confirm Purchase</h4>
+                    <h4 style="margin: 0 0 8px 0; color: #111827;">Confirm Transaction</h4>
                     <p style="margin: 0 0 12px 0; font-size: 0.9rem; color: #4b5563;">
-                        Are you sure you want me to buy <strong>${productName}</strong> for <strong>$${price}</strong>?<br><br>
-                        It will be charged to your ${USER_PROFILE.payment_method} and shipped to <em>${USER_PROFILE.shipping_address}</em>.
+                        Are you sure you want me to ${actionText} <strong>${title}</strong> for <strong>$${price}</strong>?<br><br>
+                        It will be charged to your ${USER_PROFILE.payment_method}.
                     </p>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="confirmPurchase(true)" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Yes, Buy It</button>
-                        <button onclick="confirmPurchase(false)" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Cancel</button>
+                        <button onclick="confirmTransaction(true)" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Yes, Proceed</button>
+                        <button onclick="confirmTransaction(false)" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Cancel</button>
                     </div>
                 </div>
             `;
-            appendAgentMsg(`I am ready to finalize the order. Please confirm:` + html);
+            appendAgentMsg(`I am ready to finalize the transaction. Please confirm:` + html);
         }
 
-        async function confirmPurchase(isConfirmed) {
-            if (!pendingPurchase) return;
+        async function confirmTransaction(isConfirmed) {
+            if (!pendingAction) return;
             
             if (!isConfirmed) {
                 appendHumanMsg("Cancel");
-                appendAgentMsg("Purchase cancelled. Let me know if you need anything else!");
-                pendingPurchase = null;
+                appendAgentMsg("Transaction cancelled. Let me know if you need anything else!");
+                pendingAction = null;
                 return;
             }
 
-            appendHumanMsg("Yes, Buy It");
-            appendAgentMsg(`<em>Executing transaction for ${pendingPurchase.productName}...</em>`);
+            appendHumanMsg("Yes, Proceed");
+            appendAgentMsg(`<em>Executing transaction for ${pendingAction.title}...</em>`);
             
             try {
-                const payload = {
-                    product_id: pendingPurchase.productId,
-                    quantity: 1,
-                    ...USER_PROFILE
-                };
+                let url, payload;
 
-                const res = await fetch('http://localhost:3001/api/ecommerce/buy', {
+                if (pendingAction.domain === 'ecommerce') {
+                    url = 'http://localhost:3001/api/ecommerce/buy';
+                    payload = {
+                        product_id: pendingAction.id,
+                        quantity: 1,
+                        buyer_agent_id: USER_PROFILE.buyer_agent_id,
+                        shipping_address: USER_PROFILE.shipping_address,
+                        payment_method: USER_PROFILE.payment_method,
+                        payment_id: USER_PROFILE.payment_id
+                    };
+                } else if (pendingAction.domain === 'travel') {
+                    url = 'http://localhost:3001/api/booking/book';
+                    payload = {
+                        flight_id: pendingAction.id,
+                        passenger_name: USER_PROFILE.name || "Human Passenger", // Using name from profile
+                        agent_id: USER_PROFILE.buyer_agent_id
+                    };
+                }
+
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -275,7 +369,12 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    appendAgentMsg(`✅ <strong>Success!</strong> ${data.message}<br>Order ID: <code>${data.receipt.order_id}</code><br>It will be shipped to: ${data.receipt.shipping_to}`);
+                    if (pendingAction.domain === 'ecommerce') {
+                        const shipTo = data.receipt.shipping_to || USER_PROFILE.shipping_address;
+                        appendAgentMsg(`✅ <strong>Success!</strong> ${data.message}<br>Order ID: <code>${data.receipt.order_id}</code><br>It will be shipped to: ${shipTo}`);
+                    } else {
+                        appendAgentMsg(`✅ <strong>Flight Booked!</strong> ${data.message}<br>Booking Ref: <code>${data.confirmation.booking_ref}</code><br>Passenger: ${data.confirmation.passenger}`);
+                    }
                 } else {
                     appendAgentMsg(`❌ <strong>Failed:</strong> ${data.error}`);
                 }
@@ -283,7 +382,7 @@
                 appendAgentMsg(`❌ <strong>System Error:</strong> ${e.message}`);
             }
             
-            pendingPurchase = null;
+            pendingAction = null;
         }
     </script>
 </body>
