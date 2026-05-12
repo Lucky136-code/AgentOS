@@ -302,19 +302,49 @@ function initPlayground() {
     });
 }
 
-// === WEBSOCKET FOR REAL-TIME DASHBOARD ===
+// === WEBSOCKET & HTTP FALLBACK FOR DASHBOARD ===
+let pollingInterval = null;
+
 function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${protocol}//${window.location.host}`);
+    
+    try {
+        ws = new WebSocket(`${protocol}//${window.location.host}`);
 
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'stats') updateDashboard(msg.data);
-        if (msg.type === 'activity') addActivityItem(msg.data);
-    };
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'stats') updateDashboard(msg.data);
+            if (msg.type === 'activity') addActivityItem(msg.data);
+        };
 
-    ws.onclose = () => { setTimeout(initWebSocket, 3000); };
-    ws.onerror = () => {};
+        ws.onerror = () => {
+            console.warn('[Agent OS] WebSocket failed (Likely Vercel Serverless environment). Falling back to HTTP Polling.');
+            startHttpPollingFallback();
+        };
+
+        ws.onclose = () => {
+            if (!pollingInterval) setTimeout(initWebSocket, 5000);
+        };
+    } catch (e) {
+        startHttpPollingFallback();
+    }
+}
+
+// Fallback for Vercel/Serverless where WebSockets drop
+function startHttpPollingFallback() {
+    if (pollingInterval) return;
+    
+    pollingInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/stats`);
+            if (res.ok) {
+                const stats = await res.json();
+                updateDashboard(stats);
+            }
+        } catch (e) {
+            console.error('[Agent OS] Polling failed:', e);
+        }
+    }, 3000);
 }
 
 function updateDashboard(stats) {
@@ -339,11 +369,14 @@ function updateDashboard(stats) {
     const values = [stats.totalServices || 0, stats.activeAgents || 0, stats.uptime ? Math.min(99.99, 99 + (stats.uptime / 86400)).toFixed(2) : 0, stats.totalRequests || 0];
     cards.forEach((c, i) => { if (values[i] !== undefined) c.textContent = typeof values[i] === 'number' && values[i] % 1 === 0 ? values[i].toLocaleString() : values[i]; });
 
-    // Render activity from stats
+    // Render activity feed (handles both WebSocket initial load and HTTP polling)
     if (stats.recentActivity && stats.recentActivity.length > 0) {
         const feedList = document.getElementById('feed-list');
-        if (feedList && feedList.children.length === 0) {
-            stats.recentActivity.reverse().forEach(a => addActivityItem(a));
+        if (feedList) {
+            // Clear feed to avoid duplicates on HTTP poll, then refill
+            feedList.innerHTML = '';
+            // We reverse so the newest is added at the top via prepend
+            [...stats.recentActivity].reverse().forEach(a => addActivityItem(a));
         }
     }
 }
