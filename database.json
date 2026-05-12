@@ -1,0 +1,17 @@
+{
+  "ecommerce": {
+    "products": [
+      { "id": "prod_001", "name": "Quantum Laptop Pro", "price": 1299.99, "stock": 45, "category": "electronics" },
+      { "id": "prod_002", "name": "Ergonomic Neural Chair", "price": 499.00, "stock": 12, "category": "furniture" },
+      { "id": "prod_003", "name": "Coffee Maker 3000", "price": 89.99, "stock": 150, "category": "appliances" }
+    ],
+    "orders": []
+  },
+  "booking": {
+    "flights": [
+      { "id": "fl_849", "airline": "AeroAI", "departure": "JFK", "arrival": "LHR", "price": 450, "seats_available": 12, "time": "2026-06-01T14:00:00Z" },
+      { "id": "fl_122", "airline": "TechJet", "departure": "SFO", "arrival": "HND", "price": 890, "seats_available": 4, "time": "2026-06-02T09:30:00Z" }
+    ],
+    "bookings": []
+  }
+}
