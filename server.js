@@ -22,7 +22,7 @@ function loadDB() {
   try {
     if (fs.existsSync(DB_PATH)) return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
   } catch (e) { console.error('DB load error:', e.message); }
-  return { agents: {}, memory: {}, tasks: {}, activity: [], services: getDefaultServices() };
+  return { agents: {}, memory: {}, tasks: {}, activity: [], feed: [], services: getDefaultServices() };
 }
 
 function saveDB() {
@@ -101,6 +101,7 @@ function getStats() {
     totalMemory: Object.values(db.memory).reduce((sum, ns) => sum + Object.keys(ns).length, 0),
     totalServices: Object.keys(db.services).length,
     recentActivity: db.activity.slice(0, 20),
+    recentFeed: db.feed.slice(0, 30),
     uptime: process.uptime()
   };
 }
@@ -257,10 +258,47 @@ app.put('/api/v1/memory', (req, res) => {
 // --- Stats ---
 app.get('/api/v1/stats', (req, res) => res.json(getStats()));
 
-// --- Activity ---
+// --- Activity & Feed ---
 app.get('/api/v1/activity', (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   res.json({ activity: db.activity.slice(0, limit), total: db.activity.length });
+});
+
+app.get('/api/v1/feed', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  res.json({ feed: db.feed.slice(0, limit), total: db.feed.length });
+});
+
+// --- Agent Social Broadcast ---
+app.post('/api/v1/broadcast', (req, res) => {
+  const agent = authAgent(req);
+  if (!agent) return res.status(401).json({ error: 'Authentication required' });
+
+  const { content, type } = req.body;
+  if (!content) return res.status(400).json({ error: 'Content is required' });
+
+  const postId = genId('post');
+  const post = {
+    id: postId,
+    agent_id: agent.id,
+    agent_name: agent.name,
+    content: content,
+    type: type || 'thought', // e.g., thought, discovery, request
+    likes: 0,
+    created_at: now()
+  };
+
+  db.feed.unshift(post);
+  if (db.feed.length > 500) db.feed = db.feed.slice(0, 500); // Keep last 500 posts
+  
+  db.agents[agent.id].total_requests++;
+  db.agents[agent.id].last_active = now();
+  saveDB();
+  
+  logActivity(agent.id, agent.name, 'broadcast', `Broadcasted a ${post.type} to the network`);
+  broadcastWS({ type: 'feed_post', data: post });
+
+  res.status(201).json({ posted: true, post });
 });
 
 // --- Agent Manifest ---
@@ -275,6 +313,8 @@ app.get('/.well-known/agent.json', (req, res) => {
       discover: { method: 'GET', path: '/api/v1/discover', auth: false },
       execute: { method: 'POST', path: '/api/v1/execute', auth: true },
       memory: { method: 'PUT', path: '/api/v1/memory', auth: true },
+      broadcast: { method: 'POST', path: '/api/v1/broadcast', auth: true },
+      feed: { method: 'GET', path: '/api/v1/feed', auth: false },
       stats: { method: 'GET', path: '/api/v1/stats', auth: false }
     },
     websocket: `ws://${req.get('host')}`,
