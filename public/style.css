@@ -1,220 +1,121 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap');
 
-:root {
-    --bg-main: #050505;
-    --bg-surface: rgba(15, 15, 15, 0.7);
-    --bg-surface-hover: rgba(25, 25, 25, 0.8);
-    
-    --border-color: rgba(255, 255, 255, 0.1);
-    --border-highlight: rgba(255, 255, 255, 0.2);
-    
-    --text-primary: #ffffff;
-    --text-secondary: #a1a1aa;
-    --text-muted: #52525b;
-    
-    --accent-glow: rgba(99, 102, 241, 0.5);
-    --accent-cyan: #22d3ee;
-    --accent-violet: #818cf8;
-    
-    --font-sans: 'Outfit', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-}
-
-* {
-    box-sizing: border-box;
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+    color: #111827;
+    line-height: 1.6;
     margin: 0;
     padding: 0;
 }
 
-body {
-    font-family: var(--font-sans);
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    line-height: 1.6;
-    overflow-x: hidden;
-    position: relative;
-    background-image: 
-        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(34, 211, 238, 0.08), transparent 25%);
-}
-
-/* Glassmorphism Header */
 header {
-    position: relative;
-    padding: 100px 20px 80px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 60px 20px;
     text-align: center;
-    border-bottom: 1px solid var(--border-color);
-    background: radial-gradient(circle at top, rgba(255,255,255,0.03) 0%, transparent 100%);
-}
-
-header::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent-violet), var(--accent-cyan), transparent);
-    opacity: 0.5;
 }
 
 header h1 {
-    font-size: 4rem;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    margin-bottom: 16px;
-    background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
 }
 
 header p {
-    color: var(--text-secondary);
-    font-size: 1.25rem;
-    max-width: 600px;
-    margin: 0 auto;
-    font-weight: 300;
+    color: #6b7280;
+    font-size: 1.1rem;
+    margin-top: 10px;
 }
 
-/* Main Grid */
 main {
-    max-width: 1000px;
-    margin: 60px auto 100px;
+    max-width: 800px;
+    margin: 40px auto;
     padding: 0 20px;
-    display: grid;
-    gap: 32px;
 }
 
-/* Premium Glass Cards */
 .site-card {
-    background: var(--bg-surface);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 40px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
-
-.site-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.04), transparent 40%);
-    z-index: 0;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.site-card:hover::before { opacity: 1; }
-.site-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--border-highlight);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 40px rgba(99, 102, 241, 0.1);
-}
-
-.site-card > * { position: relative; z-index: 1; }
 
 .site-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .site-header h2 {
-    font-size: 1.8rem;
+    margin: 0;
+    font-size: 1.5rem;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 12px;
 }
 
 .badge {
-    background: rgba(34, 211, 238, 0.1);
-    color: var(--accent-cyan);
-    border: 1px solid rgba(34, 211, 238, 0.2);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.85rem;
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
     font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
 }
 
 .site-card > p {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    margin-bottom: 32px;
-    font-weight: 300;
+    color: #4b5563;
+    margin-bottom: 24px;
 }
 
-/* API Docs Area */
 .api-docs {
-    background: rgba(0,0,0,0.4);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 24px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 20px;
 }
 
 .endpoint {
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 16px;
 }
 .endpoint:last-child {
-    margin-bottom: 0; padding-bottom: 0; border-bottom: none;
+    margin-bottom: 0;
 }
 
 .endpoint-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .method {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 6px;
-    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-right: 10px;
 }
 
-.method.get { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
-.method.post { background: rgba(129, 140, 248, 0.15); color: var(--accent-violet); }
+.method.get { background: #dbeafe; color: #1e40af; }
+.method.post { background: #fef3c7; color: #92400e; }
 
 code {
-    font-family: var(--font-mono);
-    font-size: 0.95rem;
-    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: #111827;
 }
 
 .desc {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    font-weight: 300;
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin: 0;
 }
-
 .desc code {
-    font-size: 0.85rem;
-    background: rgba(255,255,255,0.1);
+    font-size: 0.8rem;
+    background: #e5e7eb;
     padding: 2px 6px;
     border-radius: 4px;
-    color: #e4e4e7;
 }
-
-/* Animations */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.site-card {
-    animation: fadeUp 0.6s ease-out forwards;
-    opacity: 0;
-}
-.site-card:nth-child(2) { animation-delay: 0.2s; }
