@@ -180,7 +180,7 @@
                                 <h3 class="product-title">${p.name}</h3>
                                 <div class="product-rating">★ ${p.rating}/5.0</div>
                                 <div class="product-price">$${p.price}</div>
-                                <button class="buy-btn" onclick="executePurchase('${p.id}', '${p.name}')">Approve Purchase</button>
+                                <button class="buy-btn" onclick="executePurchase('${p.id}', '${p.name}', ${p.price})">Approve Purchase</button>
                             </div>
                         </div>
                     `;
@@ -193,12 +193,44 @@
             }
         }
 
-        async function executePurchase(productId, productName) {
-            appendAgentMsg(`<em>You approved the purchase of ${productName}. Executing transaction with your saved payment details...</em>`);
+        let pendingPurchase = null;
+
+        function executePurchase(productId, productName, price) {
+            pendingPurchase = { productId, productName, price };
+            
+            // Generate a confirmation dialog in the chat
+            let html = `
+                <div style="background: #fff; border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin-top: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <h4 style="margin: 0 0 8px 0; color: #111827;">Confirm Purchase</h4>
+                    <p style="margin: 0 0 12px 0; font-size: 0.9rem; color: #4b5563;">
+                        Are you sure you want me to buy <strong>${productName}</strong> for <strong>$${price}</strong>?<br><br>
+                        It will be charged to your ${USER_PROFILE.payment_method} and shipped to <em>${USER_PROFILE.shipping_address}</em>.
+                    </p>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="confirmPurchase(true)" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Yes, Buy It</button>
+                        <button onclick="confirmPurchase(false)" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            appendAgentMsg(`I am ready to finalize the order. Please confirm:` + html);
+        }
+
+        async function confirmPurchase(isConfirmed) {
+            if (!pendingPurchase) return;
+            
+            if (!isConfirmed) {
+                appendHumanMsg("Cancel");
+                appendAgentMsg("Purchase cancelled. Let me know if you need anything else!");
+                pendingPurchase = null;
+                return;
+            }
+
+            appendHumanMsg("Yes, Buy It");
+            appendAgentMsg(`<em>Executing transaction for ${pendingPurchase.productName}...</em>`);
             
             try {
                 const payload = {
-                    product_id: productId,
+                    product_id: pendingPurchase.productId,
                     quantity: 1,
                     ...USER_PROFILE
                 };
@@ -219,6 +251,8 @@
             } catch (e) {
                 appendAgentMsg(`❌ <strong>System Error:</strong> ${e.message}`);
             }
+            
+            pendingPurchase = null;
         }
     </script>
 </body>
