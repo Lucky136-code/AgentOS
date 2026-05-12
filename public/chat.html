@@ -87,14 +87,45 @@
         </div>
     </div>
 
+    <div id="profileModal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000;">
+        <div style="background:#fff; padding:30px; border-radius:12px; width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0;">Profile Setup</h3>
+            <p style="font-size:0.9rem; color:#6b7280; margin-bottom:20px;">I need to know where to ship your items and how to pay for them.</p>
+            <input type="text" id="setupAddress" placeholder="Shipping Address" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
+            <input type="text" id="setupPaymentMethod" placeholder="Payment Method (e.g. UPI)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
+            <input type="text" id="setupPaymentId" placeholder="Payment ID (e.g. upi@id)" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;">
+            <button onclick="saveProfile()" style="width:100%; background:#3b82f6; color:white; border:none; padding:12px; border-radius:6px; font-weight:600; cursor:pointer;">Save Profile</button>
+        </div>
+    </div>
+
     <script>
-        // Mock User Profile (Stored safely in the human's device, given to Agent when purchasing)
-        const USER_PROFILE = {
-            buyer_agent_id: "human_ui_agent_99",
-            shipping_address: "123 Silicon Valley, CA",
-            payment_method: "Credit Card",
-            payment_id: "XXXX-XXXX-XXXX-4242"
-        };
+        let USER_PROFILE = JSON.parse(localStorage.getItem('agent_user_profile'));
+
+        if (!USER_PROFILE) {
+            document.getElementById('profileModal').style.display = 'flex';
+        }
+
+        function saveProfile() {
+            const addr = document.getElementById('setupAddress').value.trim();
+            const method = document.getElementById('setupPaymentMethod').value.trim();
+            const pid = document.getElementById('setupPaymentId').value.trim();
+            
+            if(!addr || !method || !pid) {
+                alert("Please fill out all fields.");
+                return;
+            }
+
+            USER_PROFILE = {
+                buyer_agent_id: "human_ui_agent_99",
+                shipping_address: addr,
+                payment_method: method,
+                payment_id: pid
+            };
+            
+            localStorage.setItem('agent_user_profile', JSON.stringify(USER_PROFILE));
+            document.getElementById('profileModal').style.display = 'none';
+            appendAgentMsg("Profile saved securely in your browser! What would you like to buy today?");
+        }
 
         const chat = document.getElementById('chat');
         const input = document.getElementById('userInput');
