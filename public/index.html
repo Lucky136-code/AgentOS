@@ -22,13 +22,17 @@
             
             <div class="api-docs">
                 <div class="endpoint">
-                    <span class="method get">GET</span>
-                    <code>/api/ecommerce/products</code>
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <code>/api/ecommerce/products</code>
+                    </div>
                     <p class="desc">Browse the store catalog.</p>
                 </div>
                 <div class="endpoint">
-                    <span class="method post">POST</span>
-                    <code>/api/ecommerce/buy</code>
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <code>/api/ecommerce/buy</code>
+                    </div>
                     <p class="desc">Buy a product. Requires: <code>{ "product_id": "...", "quantity": 1, "buyer_agent_id": "..." }</code></p>
                 </div>
             </div>
@@ -43,13 +47,17 @@
             
             <div class="api-docs">
                 <div class="endpoint">
-                    <span class="method get">GET</span>
-                    <code>/api/booking/flights</code>
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <code>/api/booking/flights</code>
+                    </div>
                     <p class="desc">List available flights.</p>
                 </div>
                 <div class="endpoint">
-                    <span class="method post">POST</span>
-                    <code>/api/booking/book</code>
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <code>/api/booking/book</code>
+                    </div>
                     <p class="desc">Book a ticket. Requires: <code>{ "flight_id": "...", "passenger_name": "...", "agent_id": "..." }</code></p>
                 </div>
             </div>
