@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background (like an app/OS icon) -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg)"/>
+  <!-- Central brain/chip: circle with radiating circuit traces -->
+  <circle cx="32" cy="32" r="10" fill="none" stroke="#fff" stroke-width="2.5" opacity="0.95"/>
+  <circle cx="32" cy="32" r="4" fill="#fff" opacity="0.95"/>
+  <!-- Circuit traces outward (agent connections) -->
+  <line x1="32" y1="22" x2="32" y2="12" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="32" y1="42" x2="32" y2="52" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="22" y1="32" x2="12" y2="32" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="42" y1="32" x2="52" y2="32" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <!-- Diagonal traces -->
+  <line x1="25" y1="25" x2="17" y2="17" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="39" y1="25" x2="47" y2="17" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="25" y1="39" x2="17" y2="47" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="39" y1="39" x2="47" y2="47" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <!-- Outer connection dots -->
+  <circle cx="32" cy="11" r="2.5" fill="#fff" opacity="0.8"/>
+  <circle cx="32" cy="53" r="2.5" fill="#fff" opacity="0.8"/>
+  <circle cx="11" cy="32" r="2.5" fill="#fff" opacity="0.8"/>
+  <circle cx="53" cy="32" r="2.5" fill="#fff" opacity="0.8"/>
+</svg>
