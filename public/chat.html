@@ -109,6 +109,28 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
+        // --- Simulate an LLM parsing Natural Language ---
+        function analyzeIntent(query) {
+            const lowerQuery = query.toLowerCase();
+            let intent = { keywords: [], maxPrice: Infinity, minRating: 0 };
+            
+            // 1. Extract Price Constraints (e.g. "under 500", "< 1000")
+            const priceMatch = lowerQuery.match(/(?:under|below|<|max|cheaper than)\s*\$?(\d+)/);
+            if (priceMatch) intent.maxPrice = parseInt(priceMatch[1]);
+            
+            // 2. Extract Quality Constraints
+            if (lowerQuery.includes("best") || lowerQuery.includes("top rated") || lowerQuery.includes("good")) {
+                intent.minRating = 4.5;
+            }
+
+            // 3. Extract core keywords by removing stop words
+            const stopWords = ["show", "me", "some", "a", "an", "the", "i", "want", "to", "buy", "find", "looking", "for", "with", "price", "under", "below", "dollars", "bucks", "$"];
+            const words = lowerQuery.replace(/[^\w\s]/gi, '').split(' ');
+            
+            intent.keywords = words.filter(w => !stopWords.includes(w) && isNaN(w) && w.length > 2);
+            return intent;
+        }
+
         async function sendMessage() {
             const query = input.value.trim();
             if (!query) return;
@@ -116,26 +138,39 @@
             appendHumanMsg(query);
             input.value = '';
             
-            appendAgentMsg(`<em>Searching the AgentMart database for "${query}"...</em>`);
+            // 1. "LLM" processes the text
+            const intent = analyzeIntent(query);
+            appendAgentMsg(`<em>I understand you are looking for: <strong>${intent.keywords.join(', ')}</strong> ` + 
+                           (intent.maxPrice !== Infinity ? `under $${intent.maxPrice}` : "") + `</em>`);
 
             try {
-                // Agent autonomously searches the API
+                // 2. Agent fetches from the API
                 const res = await fetch('http://localhost:3001/api/ecommerce/products');
                 const data = await res.json();
                 
-                // Agent filters based on human request
-                const matches = data.products.filter(p => 
-                    p.name.toLowerCase().includes(query.toLowerCase()) || 
-                    p.category.toLowerCase().includes(query.toLowerCase())
-                );
+                // 3. Agent applies logic to the data based on intent
+                const matches = data.products.filter(p => {
+                    // Check price
+                    if (p.price > intent.maxPrice) return false;
+                    // Check rating
+                    if (p.rating < intent.minRating) return false;
+                    // Check keywords
+                    if (intent.keywords.length === 0) return true; // Show all if no specific keyword
+                    
+                    return intent.keywords.some(kw => 
+                        p.name.toLowerCase().includes(kw) || 
+                        p.category.toLowerCase().includes(kw) ||
+                        p.description.toLowerCase().includes(kw)
+                    );
+                });
 
                 if (matches.length === 0) {
-                    appendAgentMsg(`I couldn't find anything matching "${query}". Available categories are: electronics, furniture, appliances.`);
+                    appendAgentMsg(`I couldn't find any items matching your exact criteria. Try adjusting the price or keywords!`);
                     return;
                 }
 
-                // Agent returns Rich UI Cards instead of blindly buying
-                let html = `I found ${matches.length} option(s) for you on AgentMart:<br><div class="product-grid">`;
+                // Agent returns Rich UI Cards
+                let html = `I found ${matches.length} option(s) for you:<br><div class="product-grid">`;
                 
                 matches.forEach(p => {
                     html += `
